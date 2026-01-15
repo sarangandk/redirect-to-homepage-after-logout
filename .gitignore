@@ -1,0 +1,15 @@
+# WordPress
+.DS_Store
+*.log
+.htaccess
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
