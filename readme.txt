@@ -2,8 +2,8 @@
 Contributors: sarangan112
 Tags: logout, redirect, homepage, user, session
 Requires at least: 5.0
-Tested up to: 6.9
-Stable tag: 1.0.0
+Tested up to: 7.0
+Stable tag: 1.0.1
 Requires PHP: 7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -33,6 +33,10 @@ No, it only changes the redirect behavior after logout.
 Yes, edit the `redirect-homepage-logout.php` file and replace the home URL with your desired destination.
 
 == Changelog ==
+= 1.0.1 =
+* WordPress 7.0 Compatibility.
+* Security and sanitization fixes (Plugin Check cleanup).
+
 = 1.0.0 =
 * Added Admin Settings Page.
 * Added support for Custom URLs and Page Selection.
@@ -40,6 +44,9 @@ Yes, edit the `redirect-homepage-logout.php` file and replace the home URL with 
 * Improved security with wp_safe_redirect for internal links.
 
 == Upgrade Notice ==
+= 1.0.1 =
+WordPress 7.0 Compatibility and security fixes.
+
 = 1.0.0 =
 First stable version.
 

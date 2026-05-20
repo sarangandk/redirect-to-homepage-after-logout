@@ -3,7 +3,7 @@
  * Plugin Name: Redirect to Homepage After Logout
  * Description: Redirects users to a custom URL, page, or homepage after they log out.
  * Author: Sarangan Thillaiampalam
- * Version: 1.0
+ * Version: 1.0.1
  * Author URI: https://sarangan.dk
  * License: GPLv2 or later
  */
@@ -16,7 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Register settings and admin menu
  */
 function rhal_settings_init() {
-    register_setting( 'rhal_settings_group', 'rhal_settings' );
+    register_setting( 'rhal_settings_group', 'rhal_settings', array(
+        'sanitize_callback' => 'rhal_sanitize_settings',
+    ) );
 
     add_settings_section(
         'rhal_main_section',
@@ -59,8 +61,20 @@ function rhal_settings_init() {
 }
 add_action( 'admin_init', 'rhal_settings_init' );
 
+/**
+ * Sanitize plugin settings
+ */
+function rhal_sanitize_settings( $input ) {
+    $output = array();
+    $output['rhal_enable'] = ( isset( $input['rhal_enable'] ) && $input['rhal_enable'] === '1' ) ? '1' : '0';
+    $output['rhal_type'] = ( isset( $input['rhal_type'] ) && in_array( $input['rhal_type'], array( 'home', 'page', 'custom' ), true ) ) ? $input['rhal_type'] : 'home';
+    $output['rhal_page_id'] = isset( $input['rhal_page_id'] ) ? absint( $input['rhal_page_id'] ) : 0;
+    $output['rhal_custom_url'] = isset( $input['rhal_custom_url'] ) ? esc_url_raw( $input['rhal_custom_url'] ) : '';
+    return $output;
+}
+
 function rhal_section_callback() {
-    echo __( 'Configure where users should be sent after logging out.', 'redirect-to-homepage-after-logout' );
+    echo esc_html__( 'Configure where users should be sent after logging out.', 'redirect-to-homepage-after-logout' );
 }
 
 function rhal_enable_render() {
@@ -86,10 +100,10 @@ function rhal_type_render() {
 
 function rhal_page_render() {
     $options = get_option( 'rhal_settings' );
-    $page_id = isset( $options['rhal_page_id'] ) ? $options['rhal_page_id'] : 0;
+    $page_id = isset( $options['rhal_page_id'] ) ? (int) $options['rhal_page_id'] : 0;
     wp_dropdown_pages( array(
         'name'              => 'rhal_settings[rhal_page_id]',
-        'selected'          => $page_id,
+        'selected'          => (int) $page_id,
         'show_option_none'  => '-- Select Page --',
         'option_none_value' => '0',
     ) );
@@ -140,13 +154,12 @@ function rhal_add_settings_link( $links ) {
     array_unshift( $links, $settings_link );
     return $links;
 }
-$plugin_file = plugin_basename( __FILE__ );
-add_filter( "plugin_action_links_$plugin_file", 'rhal_add_settings_link' );
+add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'rhal_add_settings_link' );
 
 /**
  * Perform Redirection
  */
-function wpc_auto_redirect_after_logout() {
+function rhal_auto_redirect_after_logout() {
     $options = get_option( 'rhal_settings' );
 
     // If no settings exist yet, default to enabled + homepage
@@ -167,13 +180,18 @@ function wpc_auto_redirect_after_logout() {
         $redirect_url = get_permalink( $options['rhal_page_id'] );
     } elseif ( $type === 'custom' && ! empty( $options['rhal_custom_url'] ) ) {
         $redirect_url = $options['rhal_custom_url'];
-        // Use wp_redirect for custom URLs to allow external sites
-        wp_redirect( $redirect_url );
-        exit();
+        // Dynamically whitelist custom host for safe redirect
+        $custom_host = wp_parse_url( $redirect_url, PHP_URL_HOST );
+        if ( $custom_host ) {
+            add_filter( 'allowed_redirect_hosts', function( $hosts ) use ( $custom_host ) {
+                $hosts[] = $custom_host;
+                return $hosts;
+            } );
+        }
     }
 
-    // Default/Homepage/Page redirects use safe redirect
+    // Default/Homepage/Page/Custom redirects use safe redirect
     wp_safe_redirect( $redirect_url );
     exit();
 }
-add_action( 'wp_logout', 'wpc_auto_redirect_after_logout' );
+add_action( 'wp_logout', 'rhal_auto_redirect_after_logout' );
